@@ -1,7 +1,8 @@
 package com.reactlibrary;
 
-import android.support.annotation.Nullable;
 import android.util.Log;
+
+import androidx.annotation.Nullable;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReadableArray;
@@ -16,16 +17,14 @@ import com.facebook.react.uimanager.annotations.ReactProp;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.facebook.react.views.view.ReactViewGroup;
 import com.google.android.gms.ads.AdListener;
+import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdSize;
-import com.google.android.gms.ads.doubleclick.AppEventListener;
-import com.google.android.gms.ads.doubleclick.PublisherAdRequest;
-import com.google.android.gms.ads.doubleclick.PublisherAdView;
-
+import com.google.android.gms.ads.AdView;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class RNDfpBannerViewManager extends SimpleViewManager<ReactViewGroup> implements AppEventListener {
+public class RNDfpBannerViewManager extends SimpleViewManager<ReactViewGroup> {
 
   public static final String REACT_CLASS = "RNDFPBanner";
 
@@ -70,15 +69,6 @@ public class RNDfpBannerViewManager extends SimpleViewManager<ReactViewGroup> im
 
 
   @Override
-  public void onAppEvent(String name, String info) {
-    String message = String.format("Received app event (%s, %s)", name, info);
-    Log.d("PublisherAdBanner", message);
-    WritableMap event = Arguments.createMap();
-    event.putString(name, info);
-    mEventEmitter.receiveEvent(viewID, Events.EVENT_ADMOB_EVENT_RECEIVED.toString(), event);
-  }
-
-  @Override
   protected ReactViewGroup createViewInstance(ThemedReactContext themedReactContext) {
     mThemedReactContext = themedReactContext;
     mEventEmitter = themedReactContext.getJSModule(RCTEventEmitter.class);
@@ -89,10 +79,9 @@ public class RNDfpBannerViewManager extends SimpleViewManager<ReactViewGroup> im
 
   int viewID = -1;
   protected void attachNewAdView(final ReactViewGroup view) {
-    final PublisherAdView adView = new PublisherAdView(mThemedReactContext);
-    adView.setAppEventListener(this);
+    final AdView adView = new AdView(mThemedReactContext);
     // destroy old AdView if present
-    PublisherAdView oldAdView = (PublisherAdView) view.getChildAt(0);
+    AdView oldAdView = (AdView) view.getChildAt(0);
     view.removeAllViews();
     if (oldAdView != null) oldAdView.destroy();
     view.addView(adView);
@@ -101,7 +90,7 @@ public class RNDfpBannerViewManager extends SimpleViewManager<ReactViewGroup> im
 
   protected void attachEvents(final ReactViewGroup view) {
     viewID = view.getId();
-    final PublisherAdView adView = (PublisherAdView) view.getChildAt(0);
+    final AdView adView = (AdView) view.getChildAt(0);
     adView.setAdListener(new AdListener() {
       @Override
       public void onAdLoaded() {
@@ -118,16 +107,16 @@ public class RNDfpBannerViewManager extends SimpleViewManager<ReactViewGroup> im
       public void onAdFailedToLoad(int errorCode) {
         WritableMap event = Arguments.createMap();
         switch (errorCode) {
-          case PublisherAdRequest.ERROR_CODE_INTERNAL_ERROR:
+          case AdRequest.ERROR_CODE_INTERNAL_ERROR:
             event.putString("error", "ERROR_CODE_INTERNAL_ERROR");
             break;
-          case PublisherAdRequest.ERROR_CODE_INVALID_REQUEST:
+          case AdRequest.ERROR_CODE_INVALID_REQUEST:
             event.putString("error", "ERROR_CODE_INVALID_REQUEST");
             break;
-          case PublisherAdRequest.ERROR_CODE_NETWORK_ERROR:
+          case AdRequest.ERROR_CODE_NETWORK_ERROR:
             event.putString("error", "ERROR_CODE_NETWORK_ERROR");
             break;
-          case PublisherAdRequest.ERROR_CODE_NO_FILL:
+          case AdRequest.ERROR_CODE_NO_FILL:
             event.putString("error", "ERROR_CODE_NO_FILL");
             break;
         }
@@ -189,8 +178,10 @@ public class RNDfpBannerViewManager extends SimpleViewManager<ReactViewGroup> im
       AdSize[] adSizes = adSizesArrayList.toArray(new AdSize[adSizesArrayList.size()]);
 
       attachNewAdView(view);
-      PublisherAdView newAdView = (PublisherAdView) view.getChildAt(0);
-      newAdView.setAdSizes(adSizes);
+      AdView newAdView = (AdView) view.getChildAt(0);
+      for (AdSize az : adSizes) {
+        newAdView.setAdSize(az);
+      }
       newAdView.setAdUnitId(adUnitID);
 
       // send measurements to js to style the AdView in react
@@ -207,12 +198,10 @@ public class RNDfpBannerViewManager extends SimpleViewManager<ReactViewGroup> im
   public void setDimensions(final ReactViewGroup view, final ReadableMap dimensions) {
     if (dimensions != null && dimensions.hasKey("width") && !dimensions.isNull("width") && dimensions.hasKey("height") && !dimensions.isNull("height")) {
       AdSize adSize = new AdSize(dimensions.getInt("width"), dimensions.getInt("height"));
-      AdSize[] adSizes = new AdSize[1];
-      adSizes[0] = adSize;
 
       attachNewAdView(view);
-      PublisherAdView newAdView = (PublisherAdView) view.getChildAt(0);
-      newAdView.setAdSizes(adSizes);
+      AdView newAdView = (AdView) view.getChildAt(0);
+      newAdView.setAdSize(adSize);
       newAdView.setAdUnitId(adUnitID);
 
       // send measurements to js to style the AdView in react
@@ -229,12 +218,11 @@ public class RNDfpBannerViewManager extends SimpleViewManager<ReactViewGroup> im
   public void setBannerSize(final ReactViewGroup view, final String sizeString) {
     if (sizeString != null && !sizeString.isEmpty()) {
       AdSize adSize = getAdSizeFromString(sizeString);
-      AdSize[] adSizes = new AdSize[1];
-      adSizes[0] = adSize;
+
 
       attachNewAdView(view);
-      PublisherAdView newAdView = (PublisherAdView) view.getChildAt(0);
-      newAdView.setAdSizes(adSizes);
+      AdView newAdView = (AdView) view.getChildAt(0);
+      newAdView.setAdSize(adSize);
       newAdView.setAdUnitId(adUnitID);
 
       // send measurements to js to style the AdView in react
@@ -267,22 +255,22 @@ public class RNDfpBannerViewManager extends SimpleViewManager<ReactViewGroup> im
     this.testDeviceID = testDeviceID;
   }
 
-  private void loadAd(final PublisherAdView adView) {
-    if (adView.getAdSizes() != null && adUnitID != null) {
+  private void loadAd(final AdView adView) {
+    if (adView.getAdSize() != null && adUnitID != null) {
 
       if (adUnitID != adView.getAdUnitId()) {
         adView.setAdUnitId(adUnitID);
       }
 
-      PublisherAdRequest.Builder adRequestBuilder = new PublisherAdRequest.Builder();
+      AdRequest.Builder adRequestBuilder = new AdRequest.Builder();
       if (testDeviceID != null){
         if (testDeviceID.equals("EMULATOR")) {
-          adRequestBuilder = adRequestBuilder.addTestDevice(PublisherAdRequest.DEVICE_ID_EMULATOR);
+          adRequestBuilder = adRequestBuilder.addTestDevice(AdRequest.DEVICE_ID_EMULATOR);
         } else {
           adRequestBuilder = adRequestBuilder.addTestDevice(testDeviceID);
         }
       }
-      PublisherAdRequest adRequest = adRequestBuilder.build();
+      AdRequest adRequest = adRequestBuilder.build();
       adView.loadAd(adRequest);
     }
   }
