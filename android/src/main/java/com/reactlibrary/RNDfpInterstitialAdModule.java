@@ -3,12 +3,15 @@ package com.reactlibrary;
 import android.os.Handler;
 import android.os.Looper;
 
+import androidx.annotation.NonNull;
+
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.doubleclick.PublisherAdRequest;
-import com.google.android.gms.ads.doubleclick.PublisherInterstitialAd;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.interstitial.InterstitialAd;
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,8 +20,8 @@ public class RNDfpInterstitialAdModule extends ReactContextBaseJavaModule {
 
     public static final String REACT_CLASS = "RNDFPInterstitial";
 
-    PublisherInterstitialAd mPublisherInterstitialAd;
-
+    InterstitialAd mInterstitialAd;
+    ReactApplicationContext context;
 
     @Override
     public String getName() {
@@ -27,24 +30,30 @@ public class RNDfpInterstitialAdModule extends ReactContextBaseJavaModule {
 
     public RNDfpInterstitialAdModule(ReactApplicationContext reactContext) {
         super(reactContext);
-        mPublisherInterstitialAd = new PublisherInterstitialAd(reactContext);
-
+        context = reactContext;
     }
-
 
     @ReactMethod
     public void loadAdFromAdUnitId(final String adUnitID) {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run () {
-                if (mPublisherInterstitialAd.getAdUnitId() == null) {
-                    mPublisherInterstitialAd.setAdUnitId(adUnitID);
-                    mPublisherInterstitialAd.loadAd(new PublisherAdRequest.Builder().build());
-                }
+                AdRequest adRequest = new AdRequest.Builder().build();
+
+                InterstitialAd.load(context, adUnitID, adRequest,
+                    new InterstitialAdLoadCallback() {
+                        @Override
+                        public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
+                            mInterstitialAd = interstitialAd;
+                        }
+
+                        @Override
+                        public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                            mInterstitialAd = null;
+                        }
+                    });
             }
         });
-
-
     }
 
     @ReactMethod
@@ -52,10 +61,8 @@ public class RNDfpInterstitialAdModule extends ReactContextBaseJavaModule {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run () {
-                if (mPublisherInterstitialAd.isLoaded()) {
-                    mPublisherInterstitialAd.show();
-                } else {
-
+                if (mInterstitialAd != null) {
+                    mInterstitialAd.show(context.getCurrentActivity());
                 }
             }
         });
