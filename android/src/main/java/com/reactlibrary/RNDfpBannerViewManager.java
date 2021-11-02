@@ -20,8 +20,14 @@ import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.MobileAds;
+import com.google.android.gms.ads.RequestConfiguration;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class RNDfpBannerViewManager extends SimpleViewManager<ReactViewGroup> {
@@ -104,9 +110,9 @@ public class RNDfpBannerViewManager extends SimpleViewManager<ReactViewGroup> {
       }
 
       @Override
-      public void onAdFailedToLoad(int errorCode) {
+      public void onAdFailedToLoad(LoadAdError adError) {
         WritableMap event = Arguments.createMap();
-        switch (errorCode) {
+        switch (adError.getCode()) {
           case AdRequest.ERROR_CODE_INTERNAL_ERROR:
             event.putString("error", "ERROR_CODE_INTERNAL_ERROR");
             break;
@@ -132,11 +138,6 @@ public class RNDfpBannerViewManager extends SimpleViewManager<ReactViewGroup> {
       @Override
       public void onAdClosed() {
         mEventEmitter.receiveEvent(view.getId(), Events.EVENT_WILL_DISMISS.toString(), null);
-      }
-
-      @Override
-      public void onAdLeftApplication() {
-        mEventEmitter.receiveEvent(view.getId(), Events.EVENT_WILL_LEAVE_APP.toString(), null);
       }
     });
   }
@@ -262,23 +263,27 @@ public class RNDfpBannerViewManager extends SimpleViewManager<ReactViewGroup> {
         adView.setAdUnitId(adUnitID);
       }
 
-      AdRequest.Builder adRequestBuilder = new AdRequest.Builder();
-      if (testDeviceID != null){
+      List<String> testDeviceIds = null;
+
+      if (testDeviceID != null) {
         if (testDeviceID.equals("EMULATOR")) {
-          adRequestBuilder = adRequestBuilder.addTestDevice(AdRequest.DEVICE_ID_EMULATOR);
+          testDeviceIds = Arrays.asList(AdRequest.DEVICE_ID_EMULATOR);
         } else {
-          adRequestBuilder = adRequestBuilder.addTestDevice(testDeviceID);
+          testDeviceIds = Arrays.asList(testDeviceID);
         }
+
+        RequestConfiguration configuration =
+                new RequestConfiguration.Builder().setTestDeviceIds(testDeviceIds).build();
+        MobileAds.setRequestConfiguration(configuration);
       }
-      AdRequest adRequest = adRequestBuilder.build();
+
+      AdRequest adRequest = new AdRequest.Builder().build();
       adView.loadAd(adRequest);
     }
   }
 
   private AdSize getAdSizeFromString(String adSize) {
     switch (adSize) {
-      case "banner":
-        return AdSize.BANNER;
       case "largeBanner":
         return AdSize.LARGE_BANNER;
       case "mediumRectangle":
@@ -287,12 +292,6 @@ public class RNDfpBannerViewManager extends SimpleViewManager<ReactViewGroup> {
         return AdSize.FULL_BANNER;
       case "leaderBoard":
         return AdSize.LEADERBOARD;
-      case "smartBannerPortrait":
-        return AdSize.SMART_BANNER;
-      case "smartBannerLandscape":
-        return AdSize.SMART_BANNER;
-      case "smartBanner":
-        return AdSize.SMART_BANNER;
       default:
         return AdSize.BANNER;
     }
