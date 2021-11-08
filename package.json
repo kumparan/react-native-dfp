@@ -10,6 +10,11 @@
     "react-native",
     "dfp"
   ],
+  "homepage": "https://github.com/kumparan/react-native-dfp",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kumparan/react-native-dfp"
+  },
   "author": "Bub Javier <https://github.com/bubjavier/react-native-dfp>",
   "license": "",
   "peerDependencies": {
