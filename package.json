@@ -1,5 +1,5 @@
 {
-  "name": "react-native-dfp",
+  "name": "@gurukumparan/react-native-dfp",
   "version": "0.2.0",
   "description": "React Native bridge for Google DFP",
   "main": "index.js",
@@ -10,7 +10,7 @@
     "react-native",
     "dfp"
   ],
-  "author": "Bub Javier",
+  "author": "Bub Javier <https://github.com/bubjavier/react-native-dfp>",
   "license": "",
   "peerDependencies": {
     "react-native": ">=0.63.4",
